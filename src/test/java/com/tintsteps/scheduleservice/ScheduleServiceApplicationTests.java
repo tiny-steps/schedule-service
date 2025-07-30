@@ -1,10 +1,10 @@
-package com.tinysteps.scheduleservice;
+package com.tintsteps.scheduleservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ApplicationTests {
+class ScheduleServiceApplicationTests {
 
 	@Test
 	void contextLoads() {
