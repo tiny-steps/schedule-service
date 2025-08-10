@@ -1,0 +1,197 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: ts-schedule-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081  # Auth service URL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/schedules
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+# External microservice integration URLs & config
+integration:
+  doctor-service:
+    base-url: http://ts-doctor-service/api/v1/doctors
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+  address-service:
+    base-url: http://ts-address-service/api/v1/addresses
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+  user-service:
+    base-url: http://ts-user-service/api/v1/users
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+  timing-service:
+    base-url: http://ts-timing-service/api/v1/timings
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+  session-service:
+    base-url: http://ts-session-service/api/v1/session-types
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      ts-doctor-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+      ts-address-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+      ts-user-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+      ts-timing-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+      ts-session-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+
+  retry:
+    instances:
+      ts-doctor-service:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+      ts-address-service:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+      ts-user-service:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+      ts-timing-service:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+      ts-session-service:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+
+  timelimiter:
+    instances:
+      ts-doctor-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+      ts-address-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+      ts-user-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+      ts-timing-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+      ts-session-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+
+# Logging configuration for integration monitoring
+logging:
+  level:
+    com.tinysteps.scheduleservice.integration: DEBUG
+    io.github.resilience4j: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Actuator configuration for health checks and monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    circuitbreakers:
+      enabled: true
+  info:
+    env:
+      enabled: true
