@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: ts-schedule-service
-          image: subhankarm2312/ts-schedule-service:f38aacb-20250810081605 # This will be updated by the pipeline
+          image: subhankarm2312/ts-schedule-service:8ef84c8-20250810092013 # This will be updated by the pipeline
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms128m -Xmx256m"
