@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ts-schedule-service-deployment
+  labels:
+    app: ts-schedule-service
 spec:
   replicas: 1
   selector:
@@ -14,21 +16,21 @@ spec:
     spec:
       containers:
         - name: ts-schedule-service
-          image: subhankarm2312/ts-schedule-service:8ef84c8-20250810092013 # This will be updated by the pipeline
+          image: subhankarm2312/ts-schedule-service # CORRECTED: Placeholder name now matches ci.yml
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms128m -Xmx256m"
           resources:
             requests:
-              memory: "128Mi" # Request 256 MiB of memory
-              cpu: "100m"      # Request 0.25 of a CPU core
+              memory: "128Mi"
+              cpu: "100m"
             limits:
-              memory: "512Mi" # Limit the pod to a max of 512 MiB
-              cpu: "500m"      # Limit the pod to a max of 0.5 of a CPU core
+              memory: "512Mi"
+              cpu: "500m"
           ports:
-            - containerPort: 8084
+            - containerPort: 8092
           envFrom:
             - configMapRef:
                 name: ts-schedule-service-config
             - secretRef:
-                name: ts-schedule-db-credentials
+                name: ts-schedule-service-secret # CORRECTED: Name now matches secret.yml

@@ -1,14 +1,19 @@
-name: Build and Push Docker Image
+name: Build, Push, and Deploy schedule Service
 env:
   SERVICE_NAME: ts-schedule-service
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
 on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.generate_tag.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,10 +28,9 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # This new step generates the dynamic tag
       - name: Generate image tag
         id: generate_tag
         run: |
@@ -34,18 +38,19 @@ jobs:
           SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
           echo "tag=${SHORT_SHA}-${TIMESTAMP}" >> $GITHUB_OUTPUT
 
-      # This step is modified to use the generated tag
       - name: Build and push image with Jib
         run: |
-          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/${{env.SERVICE_NAME}}"
+          IMAGE_NAME="${{ env.DOCKERHUB_USERNAME }}/${{ env.SERVICE_NAME }}"
           IMAGE_TAG="${{ steps.generate_tag.outputs.tag }}"
-          
-          # Pass the full image name and tag to Maven using the -Dimage property
           mvn compile com.google.cloud.tools:jib-maven-plugin:build -Dimage="${IMAGE_NAME}:${IMAGE_TAG}"
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
 
@@ -55,6 +60,13 @@ jobs:
           method: kubeconfig
           kubeconfig: ${{ secrets.KUBECONFIG }}
 
-      - name: Deploy to Kubernetes
+      - name: Deploy to Kubernetes using Kustomize
         run: |
-          kubectl set image deployment/${{env.SERVICE_NAME}}-deployment ${{env.SERVICE_NAME}}=${{ secrets.DOCKERHUB_USERNAME }}/${{env.SERVICE_NAME}}:${{ needs.build-and-push.outputs.IMAGE_TAG }}
+          IMAGE_TAG="${{ needs.build-and-push.outputs.tag }}"
+          cd k8s
+          
+          # Use kustomize to set the new image tag dynamically
+          kustomize edit set image subhankarm2312/ts-schedule-service:${IMAGE_TAG}
+          
+          # Apply all the manifests in the k8s directory
+          kubectl apply -k .
