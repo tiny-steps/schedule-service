@@ -4,7 +4,6 @@ import com.tinysteps.scheduleservice.constants.ConsultationType;
 import com.tinysteps.scheduleservice.entity.Appointment;
 import com.tinysteps.scheduleservice.constants.AppointmentStatus;
 import com.tinysteps.scheduleservice.entity.AppointmentStatusHistory;
-import com.tinysteps.scheduleservice.exception.BadRequestException;
 import com.tinysteps.scheduleservice.exception.ResourceConflictException;
 import com.tinysteps.scheduleservice.exception.ResourceNotFoundException;
 import com.tinysteps.scheduleservice.mappers.AppointmentMapper;
@@ -21,10 +20,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static com.tinysteps.scheduleservice.constants.AppointmentStatus.valueOf;
 
@@ -83,35 +79,12 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .and(AppointmentSpecification.byPracticeId(practiceId))
                 .and(AppointmentSpecification.bySessionTypeId(sessionTypeId))
                 .and(AppointmentSpecification.byDate(date))
-                .and(parseStatusSpecification(status))
+                .and(AppointmentSpecification.byStatus(status != null ? valueOf(status) : null))
                 .and(AppointmentSpecification.byConsultationType(
                         consultationType != null ? ConsultationType.valueOf(consultationType) : null));
 
         return appointmentRepository.findAll(spec, pageable)
                 .map(appointmentMapper::toDto);
-    }
-
-    private Specification<Appointment> parseStatusSpecification(String status) {
-        if (status == null || status.trim().isEmpty()) {
-            return AppointmentSpecification.byStatus(null);
-        }
-
-        try {
-            // Handle comma-separated statuses
-            if (status.contains(",")) {
-                List<AppointmentStatus> statuses = Arrays.stream(status.split(","))
-                        .map(String::trim)
-                        .map(AppointmentStatus::valueOf)
-                        .collect(Collectors.toList());
-                return AppointmentSpecification.byStatuses(statuses);
-            }
-
-            // Handle single status
-            return AppointmentSpecification.byStatus(AppointmentStatus.valueOf(status));
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Invalid appointment status: " + status + ". Valid statuses are: " +
-                    Arrays.toString(AppointmentStatus.values()));
-        }
     }
 
     @Override
