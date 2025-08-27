@@ -4,6 +4,7 @@ import com.tinysteps.scheduleservice.constants.ConsultationType;
 import com.tinysteps.scheduleservice.entity.Appointment;
 import com.tinysteps.scheduleservice.constants.AppointmentStatus;
 import com.tinysteps.scheduleservice.entity.AppointmentStatusHistory;
+import com.tinysteps.scheduleservice.exception.BadRequestException;
 import com.tinysteps.scheduleservice.exception.ResourceConflictException;
 import com.tinysteps.scheduleservice.exception.ResourceNotFoundException;
 import com.tinysteps.scheduleservice.mappers.AppointmentMapper;
@@ -20,7 +21,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.tinysteps.scheduleservice.constants.AppointmentStatus.valueOf;
 
@@ -42,7 +46,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         Appointment entity = appointmentMapper.toEntity(dto);
-        // Generate appointment number based on your logic (could be timestamp or sequence)
+        // Generate appointment number based on your logic (could be timestamp or
+        // sequence)
         entity.setAppointmentNumber(generateAppointmentNumber());
 
         return appointmentMapper.toDto(appointmentRepository.save(entity));
@@ -59,31 +64,54 @@ public class AppointmentServiceImpl implements AppointmentService {
     public AppointmentDto getByNumber(String appointmentNumber) {
         return appointmentRepository.findByAppointmentNumber(appointmentNumber)
                 .map(appointmentMapper::toDto)
-                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with number " + appointmentNumber));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Appointment not found with number " + appointmentNumber));
     }
 
     @Override
     public Page<AppointmentDto> search(UUID doctorId,
-                                       UUID patientId,
-                                       UUID practiceId,
-                                       UUID sessionTypeId,
-                                       LocalDate date,
-                                       String status,
-                                       String consultationType,
-                                       Pageable pageable) {
+            UUID patientId,
+            UUID practiceId,
+            UUID sessionTypeId,
+            LocalDate date,
+            String status,
+            String consultationType,
+            Pageable pageable) {
         Specification<Appointment> spec = Specification
                 .where(AppointmentSpecification.byDoctorId(doctorId))
                 .and(AppointmentSpecification.byPatientId(patientId))
                 .and(AppointmentSpecification.byPracticeId(practiceId))
                 .and(AppointmentSpecification.bySessionTypeId(sessionTypeId))
                 .and(AppointmentSpecification.byDate(date))
-                .and(AppointmentSpecification.byStatus(status != null ? valueOf(status) : null))
+                .and(parseStatusSpecification(status))
                 .and(AppointmentSpecification.byConsultationType(
-                        consultationType != null ? ConsultationType.valueOf(consultationType) : null
-                ));
+                        consultationType != null ? ConsultationType.valueOf(consultationType) : null));
 
         return appointmentRepository.findAll(spec, pageable)
                 .map(appointmentMapper::toDto);
+    }
+
+    private Specification<Appointment> parseStatusSpecification(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return AppointmentSpecification.byStatus(null);
+        }
+
+        try {
+            // Handle comma-separated statuses
+            if (status.contains(",")) {
+                List<AppointmentStatus> statuses = Arrays.stream(status.split(","))
+                        .map(String::trim)
+                        .map(AppointmentStatus::valueOf)
+                        .collect(Collectors.toList());
+                return AppointmentSpecification.byStatuses(statuses);
+            }
+
+            // Handle single status
+            return AppointmentSpecification.byStatus(AppointmentStatus.valueOf(status));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid appointment status: " + status + ". Valid statuses are: " +
+                    Arrays.toString(AppointmentStatus.values()));
+        }
     }
 
     @Override
@@ -107,7 +135,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById, String changedByType, String reason) {
+    public AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById, String changedByType,
+            String reason) {
         Appointment existing = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + id));
 

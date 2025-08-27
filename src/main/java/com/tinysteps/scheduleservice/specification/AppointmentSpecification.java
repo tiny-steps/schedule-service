@@ -6,6 +6,7 @@ import com.tinysteps.scheduleservice.entity.Appointment;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public class AppointmentSpecification {
@@ -32,6 +33,10 @@ public class AppointmentSpecification {
 
     public static Specification<Appointment> byStatus(AppointmentStatus status) {
         return (root, cq, cb) -> status == null ? null : cb.equal(root.get("status"), status);
+    }
+
+    public static Specification<Appointment> byStatuses(List<AppointmentStatus> statuses) {
+        return (root, cq, cb) -> statuses == null || statuses.isEmpty() ? null : root.get("status").in(statuses);
     }
 
     public static Specification<Appointment> byConsultationType(ConsultationType type) {
