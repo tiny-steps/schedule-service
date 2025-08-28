@@ -8,7 +8,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AppointmentDto {
     private UUID id;
     private String appointmentNumber;
@@ -23,4 +27,5 @@ public class AppointmentDto {
     private ConsultationType consultationType;
     private String notes;
     private String cancellationReason;
+    private Integer sessionDurationMinutes; // For calculating end time
 }

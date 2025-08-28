@@ -20,6 +20,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.Duration;
 import java.util.UUID;
 
 import static com.tinysteps.scheduleservice.constants.AppointmentStatus.valueOf;
@@ -45,6 +47,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Generate appointment number based on your logic (could be timestamp or
         // sequence)
         entity.setAppointmentNumber(generateAppointmentNumber());
+
+        // Calculate end time based on session type duration
+        LocalTime startTime = entity.getStartTime();
+        int durationMinutes = dto.getSessionDurationMinutes() != null ? dto.getSessionDurationMinutes() : 30; // Use
+                                                                                                              // provided
+                                                                                                              // duration
+                                                                                                              // or
+                                                                                                              // default
+                                                                                                              // to 30
+                                                                                                              // minutes
+        LocalTime endTime = startTime.plusMinutes(durationMinutes);
+        entity.setEndTime(endTime);
 
         return appointmentMapper.toDto(appointmentRepository.save(entity));
     }
