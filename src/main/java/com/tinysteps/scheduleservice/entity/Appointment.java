@@ -50,7 +50,7 @@ public class Appointment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AppointmentStatus status = AppointmentStatus.PENDING_PAYMENT;
+    private AppointmentStatus status = AppointmentStatus.SCHEDULED;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "consultation_type", nullable = false)

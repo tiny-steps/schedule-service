@@ -16,17 +16,18 @@ public interface AppointmentService {
     AppointmentDto getByNumber(String appointmentNumber);
 
     Page<AppointmentDto> search(UUID doctorId,
-                                UUID patientId,
-                                UUID practiceId,
-                                UUID sessionTypeId,
-                                LocalDate date,
-                                String status,
-                                String consultationType,
-                                Pageable pageable);
+            UUID patientId,
+            UUID practiceId,
+            UUID sessionTypeId,
+            LocalDate date,
+            String status,
+            String consultationType,
+            Pageable pageable);
 
     AppointmentDto update(UUID id, AppointmentDto dto);
 
     void delete(UUID id);
 
-    AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById, String changedByType, String reason);
+    AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById, String reason,
+            String cancellationType, UUID rescheduledToAppointmentId);
 }

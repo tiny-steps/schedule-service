@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.UUID;
 
 import static com.tinysteps.scheduleservice.constants.AppointmentStatus.valueOf;
+import com.tinysteps.scheduleservice.constants.CancellationType;
 
 @Service
 @RequiredArgsConstructor
@@ -122,8 +123,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById, String changedByType,
-            String reason) {
+    public AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById,
+            String reason, String cancellationType, UUID rescheduledToAppointmentId) {
         Appointment existing = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + id));
 
@@ -136,13 +137,19 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointmentRepository.save(existing);
 
         // Create a history record
-        AppointmentStatusHistory history = new AppointmentStatusHistory();
-        history.setAppointment(existing);
-        history.setOldStatus(oldStatus);
-        history.setNewStatus(newStatusEnum);
-        history.setChangedById(changedById);
-        history.setChangedByType(changedByType);
-        history.setReason(reason);
+        AppointmentStatusHistory history = AppointmentStatusHistory.builder()
+                .appointment(existing)
+                .oldStatus(oldStatus)
+                .newStatus(newStatusEnum)
+                .changedById(changedById)
+                .reason(reason)
+                .rescheduledToAppointmentId(rescheduledToAppointmentId)
+                .build();
+
+        // Set cancellation type for all status changes
+        if (cancellationType != null) {
+            history.setCancellationType(CancellationType.valueOf(cancellationType));
+        }
 
         historyRepository.save(history);
 
