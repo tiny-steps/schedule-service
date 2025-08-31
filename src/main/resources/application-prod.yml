@@ -1,5 +1,5 @@
 server:
-  port: 8088
+  port: 8092
 
 spring:
   application:
@@ -36,11 +36,27 @@ eureka:
   instance:
     prefer-ip-address: true
     hostname: ts-schedule-service
+    appname: ${spring.application.name}
+    instance-id: ${spring.application.name}:${server.port}
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    health-check-url-path: /actuator/health
+    status-page-url-path: /actuator/info
+    home-page-url-path: /
+    secure-health-check-url: false
+    non-secure-port: ${server.port}
+    non-secure-port-enabled: true
   client:
     register-with-eureka: true
     fetch-registry: true
     service-url:
       defaultZone: http://ts-service-registry:8761/eureka/
+    registry-fetch-interval-seconds: 30
+    eureka-service-url-poll-interval-seconds: 30
+    initial-instance-info-replication-interval-seconds: 40
+    instance-info-replication-interval-seconds: 30
+    eureka-server-connect-timeout-seconds: 5
+    eureka-server-read-timeout-seconds: 8
 
 # External microservice integration URLs & config
 integration:
