@@ -26,10 +26,6 @@ ALTER TABLE appointments
     ALTER COLUMN status TYPE appointment_status 
     USING status::text::appointment_status;
 
--- Update default value
-ALTER TABLE appointments 
-    ALTER COLUMN status SET DEFAULT 'SCHEDULED'::appointment_status;
-
 -- Step 4: Update appointment_status_history table
 -- Add new columns
 ALTER TABLE appointment_status_history 
