@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import static com.tinysteps.scheduleservice.constants.AppointmentStatus.valueOf;
 import com.tinysteps.scheduleservice.constants.CancellationType;
+import java.time.ZonedDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -132,6 +133,14 @@ public class AppointmentServiceImpl implements AppointmentService {
         AppointmentStatus newStatusEnum = AppointmentStatus.valueOf(newStatus);
 
         existing.setStatus(newStatusEnum);
+
+        // Handle check-in status
+        if (newStatusEnum == AppointmentStatus.CHECKED_IN) {
+            if (existing.getCheckedInAt() != null) {
+                throw new ResourceConflictException("Patient has already checked in for this appointment");
+            }
+            existing.setCheckedInAt(ZonedDateTime.now());
+        }
 
         // Save the appointment
         appointmentRepository.save(existing);

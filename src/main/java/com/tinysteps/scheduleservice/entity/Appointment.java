@@ -14,10 +14,14 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "appointments", uniqueConstraints = {
-        @UniqueConstraint(name = "uq_doctor_practice_slot",
-                columnNames = {"doctor_id", "practice_id", "appointment_date", "start_time"})
+        @UniqueConstraint(name = "uq_doctor_practice_slot", columnNames = { "doctor_id", "practice_id",
+                "appointment_date", "start_time" })
 })
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Appointment {
 
     @Id
@@ -61,6 +65,9 @@ public class Appointment {
 
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     private String cancellationReason;
+
+    @Column(name = "checked_in_at")
+    private ZonedDateTime checkedInAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

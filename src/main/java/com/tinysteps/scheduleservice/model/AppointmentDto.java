@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @Getter
@@ -27,5 +28,6 @@ public class AppointmentDto {
     private ConsultationType consultationType;
     private String notes;
     private String cancellationReason;
+    private ZonedDateTime checkedInAt;
     private Integer sessionDurationMinutes; // For calculating end time
 }

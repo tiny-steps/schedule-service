@@ -9,25 +9,25 @@ import java.util.UUID;
 
 public interface AppointmentService {
 
-    AppointmentDto create(AppointmentDto dto);
+        AppointmentDto create(AppointmentDto dto);
 
-    AppointmentDto getById(UUID id);
+        AppointmentDto getById(UUID id);
 
-    AppointmentDto getByNumber(String appointmentNumber);
+        AppointmentDto getByNumber(String appointmentNumber);
 
-    Page<AppointmentDto> search(UUID doctorId,
-            UUID patientId,
-            UUID practiceId,
-            UUID sessionTypeId,
-            LocalDate date,
-            String status,
-            String consultationType,
-            Pageable pageable);
+        Page<AppointmentDto> search(UUID doctorId,
+                        UUID patientId,
+                        UUID practiceId,
+                        UUID sessionTypeId,
+                        LocalDate date,
+                        String status,
+                        String consultationType,
+                        Pageable pageable);
 
-    AppointmentDto update(UUID id, AppointmentDto dto);
+        AppointmentDto update(UUID id, AppointmentDto dto);
 
-    void delete(UUID id);
+        void delete(UUID id);
 
-    AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById, String reason,
-            String cancellationType, UUID rescheduledToAppointmentId);
+        AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById, String reason,
+                        String cancellationType, UUID rescheduledToAppointmentId);
 }
