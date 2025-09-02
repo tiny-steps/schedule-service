@@ -128,4 +128,37 @@ public class AppointmentController {
                                 updated,
                                 null);
         }
+
+        @GetMapping("/conflicts")
+        @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('PATIENT')")
+        public ResponseModel<Boolean> checkTimeSlotConflict(
+                        @RequestParam UUID doctorId,
+                        @RequestParam LocalDate date,
+                        @RequestParam String startTime,
+                        @RequestParam String endTime) {
+                boolean hasConflict = appointmentService.hasTimeSlotConflict(doctorId, date, startTime, endTime);
+                return new ResponseModel<>(
+                                200,
+                                "OK",
+                                "Time slot conflict check completed",
+                                ZonedDateTime.now(),
+                                hasConflict,
+                                null);
+        }
+
+        @GetMapping("/existing")
+        @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('PATIENT')")
+        public ResponseModel<List<AppointmentDto>> getExistingAppointments(
+                        @RequestParam UUID doctorId,
+                        @RequestParam LocalDate date,
+                        @RequestParam(required = false, defaultValue = "SCHEDULED,CONFIRMED") String status) {
+                List<AppointmentDto> appointments = appointmentService.getExistingAppointments(doctorId, date, status);
+                return new ResponseModel<>(
+                                200,
+                                "OK",
+                                "Existing appointments retrieved successfully",
+                                ZonedDateTime.now(),
+                                appointments,
+                                null);
+        }
 }

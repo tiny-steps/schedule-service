@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 import static com.tinysteps.scheduleservice.constants.AppointmentStatus.valueOf;
@@ -167,5 +168,60 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private String generateAppointmentNumber() {
         return "APT-" + System.currentTimeMillis();
+    }
+
+    @Override
+    public boolean hasTimeSlotConflict(UUID doctorId, LocalDate date, String startTime, String endTime) {
+        LocalTime start = LocalTime.parse(startTime);
+        LocalTime end = LocalTime.parse(endTime);
+
+        // Find appointments for the doctor on the given date with SCHEDULED or
+        // CONFIRMED status
+        Specification<Appointment> spec = Specification
+                .where(AppointmentSpecification.byDoctorId(doctorId))
+                .and(AppointmentSpecification.byDate(date))
+                .and(AppointmentSpecification.byStatus(AppointmentStatus.SCHEDULED)
+                        .or(AppointmentSpecification.byStatus(AppointmentStatus.CHECKED_IN)));
+
+        List<Appointment> existingAppointments = appointmentRepository.findAll(spec);
+
+        // Check for time conflicts
+        return existingAppointments.stream()
+                .anyMatch(appointment -> {
+                    LocalTime appointmentStart = appointment.getStartTime();
+                    LocalTime appointmentEnd = appointment.getEndTime();
+
+                    // Check if time slots overlap: (start1 < end2) && (start2 < end1)
+                    return start.isBefore(appointmentEnd) && appointmentStart.isBefore(end);
+                });
+    }
+
+    @Override
+    public List<AppointmentDto> getExistingAppointments(UUID doctorId, LocalDate date, String status) {
+        Specification<Appointment> spec = Specification
+                .where(AppointmentSpecification.byDoctorId(doctorId))
+                .and(AppointmentSpecification.byDate(date));
+
+        // Parse status parameter (comma-separated list)
+        if (status != null && !status.trim().isEmpty()) {
+            String[] statusList = status.split(",");
+            Specification<Appointment> statusSpec = null;
+
+            for (String s : statusList) {
+                AppointmentStatus appointmentStatus = AppointmentStatus.valueOf(s.trim());
+                if (statusSpec == null) {
+                    statusSpec = AppointmentSpecification.byStatus(appointmentStatus);
+                } else {
+                    statusSpec = statusSpec.or(AppointmentSpecification.byStatus(appointmentStatus));
+                }
+            }
+
+            spec = spec.and(statusSpec);
+        }
+
+        return appointmentRepository.findAll(spec)
+                .stream()
+                .map(appointmentMapper::toDto)
+                .toList();
     }
 }

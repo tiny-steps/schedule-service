@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public interface AppointmentService {
@@ -30,4 +31,8 @@ public interface AppointmentService {
 
         AppointmentDto changeStatus(UUID id, String newStatus, UUID changedById, String reason,
                         String cancellationType, UUID rescheduledToAppointmentId);
+
+        boolean hasTimeSlotConflict(UUID doctorId, LocalDate date, String startTime, String endTime);
+
+        List<AppointmentDto> getExistingAppointments(UUID doctorId, LocalDate date, String status);
 }
