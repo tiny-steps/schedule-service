@@ -1,5 +1,6 @@
 package com.tinysteps.scheduleservice.config;
 
+import com.tinysteps.scheduleservice.filter.BranchValidationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final InternalApiAuthenticationFilter internalApiAuthenticationFilter;
+    private final BranchValidationFilter branchValidationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -32,6 +34,9 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
                 .addFilterBefore(internalApiAuthenticationFilter, 
+                        UsernamePasswordAuthenticationFilter.class)
+                // Add branch validation filter after JWT authentication
+                .addFilterAfter(branchValidationFilter,
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

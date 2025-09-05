@@ -43,6 +43,9 @@ public class Appointment {
     @Column(name = "practice_id")
     private UUID practiceId;
 
+    @Column(name = "branch_id")
+    private UUID branchId; // Branch context for multi-branch support
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 
