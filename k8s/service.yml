@@ -8,5 +8,5 @@ spec:
     app: ts-schedule-service
   ports:
     - protocol: TCP
-      port: 8084
+      port: 8092
       targetPort: 8084
