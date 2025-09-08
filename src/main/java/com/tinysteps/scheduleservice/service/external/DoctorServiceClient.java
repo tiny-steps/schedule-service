@@ -2,6 +2,7 @@ package com.tinysteps.scheduleservice.service.external;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -17,10 +18,13 @@ import java.util.UUID;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class DoctorServiceClient {
 
     private final WebClient webClient;
+
+    public DoctorServiceClient(@Qualifier("publicWebClient") WebClient webClient) {
+        this.webClient = webClient;
+    }
 
     @Value("${services.doctor-service.url:http://localhost:8083}")
     private String doctorServiceUrl;
