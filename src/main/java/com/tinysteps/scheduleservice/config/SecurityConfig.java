@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -33,11 +34,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
-                .addFilterBefore(internalApiAuthenticationFilter, 
+                .addFilterBefore(internalApiAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class)
-                // Add branch validation filter after JWT authentication
+                // Run branch validation after bearer token authentication
                 .addFilterAfter(branchValidationFilter,
-                        UsernamePasswordAuthenticationFilter.class);
+                        BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 
