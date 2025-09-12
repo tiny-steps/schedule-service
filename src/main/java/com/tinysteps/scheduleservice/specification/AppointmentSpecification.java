@@ -37,4 +37,8 @@ public class AppointmentSpecification {
     public static Specification<Appointment> byConsultationType(ConsultationType type) {
         return (root, cq, cb) -> type == null ? null : cb.equal(root.get("consultationType"), type);
     }
+
+    public static Specification<Appointment> byBranchId(UUID branchId) {
+        return (root, cq, cb) -> branchId == null ? null : cb.equal(root.get("branchId"), branchId);
+    }
 }

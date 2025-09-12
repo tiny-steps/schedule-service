@@ -12,6 +12,7 @@ import com.tinysteps.scheduleservice.model.AppointmentDto;
 import com.tinysteps.scheduleservice.repository.AppointmentRepository;
 import com.tinysteps.scheduleservice.repository.AppointmentStatusHistoryRepository;
 import com.tinysteps.scheduleservice.service.AppointmentService;
+import com.tinysteps.scheduleservice.service.SecurityService;
 import com.tinysteps.scheduleservice.specification.AppointmentSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 import static com.tinysteps.scheduleservice.constants.AppointmentStatus.valueOf;
@@ -37,6 +40,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentStatusHistoryRepository historyRepository;
     private final AppointmentMapper appointmentMapper;
     private final AppointmentStatusHistoryMapper historyMapper;
+    private final SecurityService securityService;
 
     @Override
     public AppointmentDto create(AppointmentDto dto) {
@@ -102,6 +106,45 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         return appointmentRepository.findAll(spec, pageable)
                 .map(appointmentMapper::toDto);
+    }
+
+    @Override
+    public Page<AppointmentDto> searchByBranch(UUID branchId,
+            UUID doctorId,
+            UUID patientId,
+            UUID practiceId,
+            UUID sessionTypeId,
+            LocalDate date,
+            String status,
+            String consultationType,
+            Pageable pageable) {
+        Specification<Appointment> spec = Specification
+                .where(AppointmentSpecification.byBranchId(branchId))
+                .and(AppointmentSpecification.byDoctorId(doctorId))
+                .and(AppointmentSpecification.byPatientId(patientId))
+                .and(AppointmentSpecification.byPracticeId(practiceId))
+                .and(AppointmentSpecification.bySessionTypeId(sessionTypeId))
+                .and(AppointmentSpecification.byDate(date))
+                .and(AppointmentSpecification.byStatus(status != null ? valueOf(status) : null))
+                .and(AppointmentSpecification.byConsultationType(
+                        consultationType != null ? ConsultationType.valueOf(consultationType) : null));
+
+        return appointmentRepository.findAll(spec, pageable)
+                .map(appointmentMapper::toDto);
+    }
+
+    @Override
+    public Page<AppointmentDto> searchByCurrentUserBranch(UUID doctorId,
+            UUID patientId,
+            UUID practiceId,
+            UUID sessionTypeId,
+            LocalDate date,
+            String status,
+            String consultationType,
+            Pageable pageable) {
+        UUID primaryBranchId = securityService.getPrimaryBranchId();
+        return searchByBranch(primaryBranchId, doctorId, patientId, practiceId, sessionTypeId, date, status,
+                consultationType, pageable);
     }
 
     @Override
@@ -223,5 +266,85 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .stream()
                 .map(appointmentMapper::toDto)
                 .toList();
+    }
+
+    @Override
+    public Map<String, Object> getBranchStatistics(UUID branchId) {
+        Map<String, Object> statistics = new HashMap<>();
+
+        // Total appointments in branch
+        Specification<Appointment> branchSpec = AppointmentSpecification.byBranchId(branchId);
+        long totalAppointments = appointmentRepository.count(branchSpec);
+        statistics.put("totalAppointments", totalAppointments);
+
+        // Scheduled appointments in branch
+        Specification<Appointment> scheduledSpec = branchSpec
+                .and(AppointmentSpecification.byStatus(AppointmentStatus.SCHEDULED));
+        long scheduledAppointments = appointmentRepository.count(scheduledSpec);
+        statistics.put("scheduledAppointments", scheduledAppointments);
+
+        // Confirmed appointments in branch
+        Specification<Appointment> confirmedSpec = branchSpec
+                .and(AppointmentSpecification.byStatus(AppointmentStatus.CONFIRMED));
+        long confirmedAppointments = appointmentRepository.count(confirmedSpec);
+        statistics.put("confirmedAppointments", confirmedAppointments);
+
+        // Cancelled appointments in branch
+        Specification<Appointment> cancelledSpec = branchSpec
+                .and(AppointmentSpecification.byStatus(AppointmentStatus.CANCELLED));
+        long cancelledAppointments = appointmentRepository.count(cancelledSpec);
+        statistics.put("cancelledAppointments", cancelledAppointments);
+
+        // Completed appointments in branch
+        Specification<Appointment> completedSpec = branchSpec
+                .and(AppointmentSpecification.byStatus(AppointmentStatus.COMPLETED));
+        long completedAppointments = appointmentRepository.count(completedSpec);
+        statistics.put("completedAppointments", completedAppointments);
+
+        return statistics;
+    }
+
+    @Override
+    public Map<String, Object> getCurrentUserBranchStatistics() {
+        UUID primaryBranchId = securityService.getPrimaryBranchId();
+        if (primaryBranchId == null) {
+            throw new RuntimeException("User has no primary branch assigned");
+        }
+        return getBranchStatistics(primaryBranchId);
+    }
+
+    @Override
+    public Map<String, Object> getAllBranchesStatistics() {
+        Map<String, Object> statistics = new HashMap<>();
+
+        // Total appointments across all branches
+        long totalAppointments = appointmentRepository.count();
+        statistics.put("totalAppointments", totalAppointments);
+
+        // Scheduled appointments across all branches
+        Specification<Appointment> scheduledSpec = AppointmentSpecification
+                .byStatus(AppointmentStatus.SCHEDULED);
+        long scheduledAppointments = appointmentRepository.count(scheduledSpec);
+        statistics.put("scheduledAppointments", scheduledAppointments);
+
+        // Confirmed appointments across all branches
+        Specification<Appointment> confirmedSpec = AppointmentSpecification
+                .byStatus(AppointmentStatus.CONFIRMED);
+        long confirmedAppointments = appointmentRepository.count(confirmedSpec);
+        statistics.put("confirmedAppointments", confirmedAppointments);
+
+        // Cancelled appointments across all branches
+        Specification<Appointment> cancelledSpec = AppointmentSpecification
+                .byStatus(AppointmentStatus.CANCELLED);
+        long cancelledAppointments = appointmentRepository.count(cancelledSpec);
+        statistics.put("cancelledAppointments", cancelledAppointments);
+
+        // Completed appointments across all branches
+        Specification<Appointment> completedSpec = AppointmentSpecification
+                .byStatus(AppointmentStatus.COMPLETED);
+        long completedAppointments = appointmentRepository.count(completedSpec);
+        statistics.put("completedAppointments", completedAppointments);
+
+        return statistics;
     }
 }

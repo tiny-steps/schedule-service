@@ -1,5 +1,5 @@
 package com.tinysteps.scheduleservice.constants;
 
 public enum AppointmentStatus {
-    SCHEDULED, CHECKED_IN, COMPLETED, CANCELLED
+    SCHEDULED, CONFIRMED, CHECKED_IN, COMPLETED, CANCELLED
 }

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface AppointmentService {
@@ -25,6 +26,26 @@ public interface AppointmentService {
                         String consultationType,
                         Pageable pageable);
 
+        // Branch-based search methods
+        Page<AppointmentDto> searchByBranch(UUID branchId,
+                        UUID doctorId,
+                        UUID patientId,
+                        UUID practiceId,
+                        UUID sessionTypeId,
+                        LocalDate date,
+                        String status,
+                        String consultationType,
+                        Pageable pageable);
+
+        Page<AppointmentDto> searchByCurrentUserBranch(UUID doctorId,
+                        UUID patientId,
+                        UUID practiceId,
+                        UUID sessionTypeId,
+                        LocalDate date,
+                        String status,
+                        String consultationType,
+                        Pageable pageable);
+
         AppointmentDto update(UUID id, AppointmentDto dto);
 
         void delete(UUID id);
@@ -35,4 +56,11 @@ public interface AppointmentService {
         boolean hasTimeSlotConflict(UUID doctorId, LocalDate date, String startTime, String endTime);
 
         List<AppointmentDto> getExistingAppointments(UUID doctorId, LocalDate date, String status);
+
+        // Branch statistics methods
+        Map<String, Object> getBranchStatistics(UUID branchId);
+
+        Map<String, Object> getCurrentUserBranchStatistics();
+
+        Map<String, Object> getAllBranchesStatistics();
 }
