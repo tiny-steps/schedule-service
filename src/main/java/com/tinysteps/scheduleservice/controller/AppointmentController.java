@@ -222,14 +222,14 @@ public class AppointmentController {
 
         // ==================== NEW BRANCH-BASED ENDPOINTS ====================
 
-        @Operation(summary = "Get all appointments across all branches (Admin only)", description = "Retrieves a paginated list of all appointments across all branches. Only accessible by ADMIN users.")
+        @Operation(summary = "Get all appointments across all branches (Admin only via /branch/all)", description = "Retrieves a paginated list of all appointments across all branches. Only accessible by ADMIN users.")
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "All appointments retrieved successfully"),
                         @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
         })
-        @GetMapping("/all-branches")
+        @GetMapping("/branch/all")
         @PreAuthorize("hasRole('ADMIN')")
-        public ResponseModel<Page<AppointmentDto>> getAllAppointmentsAcrossAllBranches(
+        public ResponseModel<Page<AppointmentDto>> getAppointmentsAllBranchesAlias(
                         @Parameter(description = "Doctor ID") @RequestParam(required = false) UUID doctorId,
                         @Parameter(description = "Patient ID") @RequestParam(required = false) UUID patientId,
                         @Parameter(description = "Practice ID") @RequestParam(required = false) UUID practiceId,
@@ -239,8 +239,7 @@ public class AppointmentController {
                         @Parameter(description = "Consultation type") @RequestParam(required = false) String consultationType,
                         @Parameter(description = "Pagination information") Pageable pageable) {
                 Page<AppointmentDto> page = appointmentService.search(
-                                doctorId, patientId, practiceId, sessionTypeId, date, status, consultationType,
-                                pageable);
+                                doctorId, patientId, practiceId, sessionTypeId, date, status, consultationType, pageable);
                 return new ResponseModel<>(
                                 200,
                                 "OK",

@@ -5,8 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tinysteps.scheduleservice.service.SecurityService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ReadListener;
+import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,11 +18,12 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
@@ -47,15 +51,29 @@ public class BranchValidationFilter extends OncePerRequestFilter {
 
         String requestURI = request.getRequestURI();
 
-        // Skip validation for non-protected endpoints
         if (!requiresBranchValidation(requestURI)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Skip validation if user is not authenticated
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Handle branchId=all (admin scope) via query param or path /branch/all
+        String branchParam = request.getParameter("branchId");
+        boolean pathAll = requestURI.matches(".*/branch/all(/.*)?");
+        if ((branchParam != null && branchParam.equalsIgnoreCase("all")) || pathAll) {
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(a -> a.equals("ROLE_ADMIN") || a.equals("ADMIN"));
+            if (!isAdmin) {
+                sendErrorResponse(response, HttpStatus.FORBIDDEN, "Access denied: Only ADMIN can query all branches");
+                return;
+            }
+            request.setAttribute("branchScope", "ALL");
             filterChain.doFilter(request, response);
             return;
         }
@@ -67,6 +85,18 @@ public class BranchValidationFilter extends OncePerRequestFilter {
             log.debug("Skipping branch validation for non-JWT ADMIN principal: {} (type: {})", authentication.getName(), authentication.getPrincipal().getClass().getSimpleName());
             filterChain.doFilter(request, response);
             return;
+        }
+
+        HttpServletRequest requestToUse = request;
+        byte[] cachedBody = null;
+        boolean bodyCandidate = ("POST".equalsIgnoreCase(request.getMethod()) || "PUT".equalsIgnoreCase(request.getMethod()));
+        if (bodyCandidate) {
+            try {
+                cachedBody = request.getInputStream().readAllBytes();
+                requestToUse = new CachedBodyRequestWrapper(request, cachedBody);
+            } catch (IOException e) {
+                log.warn("Unable to cache request body: {}", e.getMessage());
+            }
         }
 
         try {
@@ -82,7 +112,7 @@ public class BranchValidationFilter extends OncePerRequestFilter {
             }
 
             // Extract branchId from request
-            String branchId = extractBranchId(request);
+            String branchId = extractBranchId(requestToUse, cachedBody);
 
             if (branchId != null) {
                 // Validate branch access
@@ -92,16 +122,16 @@ public class BranchValidationFilter extends OncePerRequestFilter {
                 // Use primary branch if no branchId specified
                 UUID primaryBranchId = securityService.getPrimaryBranchId();
                 if (primaryBranchId != null) {
-                    request.setAttribute("branchId", primaryBranchId.toString());
+                    requestToUse.setAttribute("branchId", primaryBranchId.toString());
                     log.debug("Using primary branch: {}", primaryBranchId);
                 }
             }
 
-            filterChain.doFilter(request, response);
+            filterChain.doFilter(requestToUse, response);
 
-        } catch (RuntimeException e) {
-            log.warn("Branch validation failed: {}", e.getMessage());
-            sendErrorResponse(response, HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (RuntimeException ex) {
+            log.warn("Branch validation failed: {}", ex.getMessage());
+            sendErrorResponse(response, HttpStatus.FORBIDDEN, ex.getMessage());
         }
     }
 
@@ -116,7 +146,7 @@ public class BranchValidationFilter extends OncePerRequestFilter {
                userRoles.contains("RECEPTIONIST");
     }
 
-    private String extractBranchId(HttpServletRequest request) throws IOException {
+    private String extractBranchId(HttpServletRequest request, byte[] cachedBody) {
         // First, try to get from query parameters
         String branchId = request.getParameter("branchId");
         if (branchId != null && !branchId.isEmpty()) {
@@ -130,8 +160,16 @@ public class BranchValidationFilter extends OncePerRequestFilter {
         }
 
         // Finally, try to extract from request body (for POST/PUT requests)
-        if ("POST".equalsIgnoreCase(request.getMethod()) || "PUT".equalsIgnoreCase(request.getMethod())) {
-            return extractFromRequestBody(request);
+        if (cachedBody != null && cachedBody.length > 0) {
+            try {
+                JsonNode node = objectMapper.readTree(cachedBody);
+                JsonNode branchIdNode = node.get("branchId");
+                if (branchIdNode != null && !branchIdNode.isNull()) {
+                    return branchIdNode.asText();
+                }
+            } catch (Exception e) {
+                log.debug("Unable to parse body for branchId: {}", e.getMessage());
+            }
         }
 
         return null;
@@ -144,26 +182,6 @@ public class BranchValidationFilter extends OncePerRequestFilter {
         if (matcher.find()) {
             return matcher.group(1);
         }
-        return null;
-    }
-
-    private String extractFromRequestBody(HttpServletRequest request) throws IOException {
-        ContentCachingRequestWrapper wrapper = new ContentCachingRequestWrapper(request);
-        byte[] body = StreamUtils.copyToByteArray(wrapper.getInputStream());
-
-        if (body.length > 0) {
-            String bodyString = new String(body, StandardCharsets.UTF_8);
-            try {
-                JsonNode jsonNode = objectMapper.readTree(bodyString);
-                JsonNode branchIdNode = jsonNode.get("branchId");
-                if (branchIdNode != null && !branchIdNode.isNull()) {
-                    return branchIdNode.asText();
-                }
-            } catch (Exception e) {
-                log.debug("Could not parse request body as JSON: {}", e.getMessage());
-            }
-        }
-
         return null;
     }
 
@@ -180,5 +198,27 @@ public class BranchValidationFilter extends OncePerRequestFilter {
         );
 
         response.getWriter().write(errorResponse);
+    }
+
+    private static class CachedBodyRequestWrapper extends HttpServletRequestWrapper {
+        private final byte[] body;
+        CachedBodyRequestWrapper(HttpServletRequest request, byte[] body) {
+            super(request);
+            this.body = body != null ? body : new byte[0];
+        }
+        @Override
+        public ServletInputStream getInputStream() {
+            ByteArrayInputStream bais = new ByteArrayInputStream(body);
+            return new ServletInputStream() {
+                @Override public int read() { return bais.read(); }
+                @Override public boolean isFinished() { return bais.available() == 0; }
+                @Override public boolean isReady() { return true; }
+                @Override public void setReadListener(ReadListener readListener) { }
+            };
+        }
+        @Override
+        public BufferedReader getReader() {
+            return new BufferedReader(new InputStreamReader(getInputStream(), StandardCharsets.UTF_8));
+        }
     }
 }

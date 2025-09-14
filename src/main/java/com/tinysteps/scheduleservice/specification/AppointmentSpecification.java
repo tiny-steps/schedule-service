@@ -39,6 +39,9 @@ public class AppointmentSpecification {
     }
 
     public static Specification<Appointment> byBranchId(UUID branchId) {
-        return (root, cq, cb) -> branchId == null ? null : cb.equal(root.get("branchId"), branchId);
+        return (root, cq, cb) -> branchId == null ? null
+                : cb.or(
+                        cb.equal(root.get("branchId"), branchId),
+                        cb.isNull(root.get("branchId")));
     }
 }
