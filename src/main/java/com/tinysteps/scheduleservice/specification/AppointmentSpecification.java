@@ -30,6 +30,25 @@ public class AppointmentSpecification {
         return (root, cq, cb) -> date == null ? null : cb.equal(root.get("appointmentDate"), date);
     }
 
+    public static Specification<Appointment> byDateOrDateRange(LocalDate date, LocalDate startDate, LocalDate endDate) {
+        return (root, cq, cb) -> {
+            if (date != null) {
+                // Single date filter
+                return cb.equal(root.get("appointmentDate"), date);
+            } else if (startDate != null && endDate != null) {
+                // Date range filter
+                return cb.between(root.get("appointmentDate"), startDate, endDate);
+            } else if (startDate != null) {
+                // Start date only
+                return cb.greaterThanOrEqualTo(root.get("appointmentDate"), startDate);
+            } else if (endDate != null) {
+                // End date only
+                return cb.lessThanOrEqualTo(root.get("appointmentDate"), endDate);
+            }
+            return null; // No date filtering
+        };
+    }
+
     public static Specification<Appointment> byStatus(AppointmentStatus status) {
         return (root, cq, cb) -> status == null ? null : cb.equal(root.get("status"), status);
     }
@@ -43,5 +62,13 @@ public class AppointmentSpecification {
                 : cb.or(
                         cb.equal(root.get("branchId"), branchId),
                         cb.isNull(root.get("branchId")));
+    }
+
+    public static Specification<Appointment> byStatuses(java.util.List<AppointmentStatus> statuses) {
+        return (root, cq, cb) -> {
+            if (statuses == null || statuses.isEmpty()) return null;
+            if (statuses.size() == 1) return cb.equal(root.get("status"), statuses.get(0));
+            return root.get("status").in(statuses);
+        };
     }
 }

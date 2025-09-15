@@ -21,7 +21,10 @@ public interface AppointmentService {
                         UUID patientId,
                         UUID practiceId,
                         UUID sessionTypeId,
+                        UUID branchId,
                         LocalDate date,
+                        LocalDate startDate,
+                        LocalDate endDate,
                         String status,
                         String consultationType,
                         Pageable pageable);

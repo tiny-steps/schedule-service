@@ -93,18 +93,28 @@ public class AppointmentController {
                         @ApiResponse(responseCode = "403", description = "Access denied")
         })
         @GetMapping
-        @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('PATIENT')")
+        @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('PATIENT') or @securityService.isInternalServiceCall()")
         public ResponseModel<Page<AppointmentDto>> search(
                         @Parameter(description = "Doctor ID") @RequestParam(required = false) UUID doctorId,
                         @Parameter(description = "Patient ID") @RequestParam(required = false) UUID patientId,
                         @Parameter(description = "Practice ID") @RequestParam(required = false) UUID practiceId,
                         @Parameter(description = "Session type ID") @RequestParam(required = false) UUID sessionTypeId,
-                        @Parameter(description = "Date") @RequestParam(required = false) LocalDate date,
-                        @Parameter(description = "Status") @RequestParam(required = false) String status,
+                        @Parameter(description = "Branch ID or 'all'") @RequestParam(required = false, name = "branchId") String branchIdStr,
+                        @Parameter(description = "Single date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate date,
+                        @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate startDate,
+                        @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate endDate,
+                        @Parameter(description = "Status (comma separated)") @RequestParam(required = false) String status,
                         @Parameter(description = "Consultation type") @RequestParam(required = false) String consultationType,
                         @Parameter(description = "Pagination information") Pageable pageable) {
+
+                UUID branchId = null;
+                if (branchIdStr != null && !branchIdStr.isBlank() && !branchIdStr.equalsIgnoreCase("all")) {
+                        branchId = UUID.fromString(branchIdStr);
+                }
                 Page<AppointmentDto> page = appointmentService.search(
-                                doctorId, patientId, practiceId, sessionTypeId, date, status, consultationType,
+                                doctorId, patientId, practiceId, sessionTypeId, branchId,
+                                date, startDate, endDate,
+                                status, consultationType,
                                 pageable);
                 return new ResponseModel<>(
                                 200,
@@ -234,12 +244,15 @@ public class AppointmentController {
                         @Parameter(description = "Patient ID") @RequestParam(required = false) UUID patientId,
                         @Parameter(description = "Practice ID") @RequestParam(required = false) UUID practiceId,
                         @Parameter(description = "Session type ID") @RequestParam(required = false) UUID sessionTypeId,
-                        @Parameter(description = "Date") @RequestParam(required = false) LocalDate date,
-                        @Parameter(description = "Status") @RequestParam(required = false) String status,
+                        @Parameter(description = "Single date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate date,
+                        @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate startDate,
+                        @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate endDate,
+                        @Parameter(description = "Status (comma separated)") @RequestParam(required = false) String status,
                         @Parameter(description = "Consultation type") @RequestParam(required = false) String consultationType,
                         @Parameter(description = "Pagination information") Pageable pageable) {
                 Page<AppointmentDto> page = appointmentService.search(
-                                doctorId, patientId, practiceId, sessionTypeId, date, status, consultationType, pageable);
+                                doctorId, patientId, practiceId, sessionTypeId, null,
+                                date, startDate, endDate, status, consultationType, pageable);
                 return new ResponseModel<>(
                                 200,
                                 "OK",
@@ -318,13 +331,15 @@ public class AppointmentController {
                         @Parameter(description = "Patient ID") @RequestParam(required = false) UUID patientId,
                         @Parameter(description = "Practice ID") @RequestParam(required = false) UUID practiceId,
                         @Parameter(description = "Session type ID") @RequestParam(required = false) UUID sessionTypeId,
-                        @Parameter(description = "Date") @RequestParam(required = false) LocalDate date,
-                        @Parameter(description = "Status") @RequestParam(required = false) String status,
+                        @Parameter(description = "Single date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate date,
+                        @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate startDate,
+                        @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) LocalDate endDate,
+                        @Parameter(description = "Status (comma separated)") @RequestParam(required = false) String status,
                         @Parameter(description = "Consultation type") @RequestParam(required = false) String consultationType,
                         @Parameter(description = "Pagination information") Pageable pageable) {
                 Page<AppointmentDto> page = appointmentService.search(
-                                doctorId, patientId, practiceId, sessionTypeId, date, status, consultationType,
-                                pageable);
+                                doctorId, patientId, practiceId, sessionTypeId, null,
+                                date, startDate, endDate, status, consultationType, pageable);
                 return new ResponseModel<>(
                                 200,
                                 "OK",

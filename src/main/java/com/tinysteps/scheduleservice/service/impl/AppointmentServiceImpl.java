@@ -90,17 +90,31 @@ public class AppointmentServiceImpl implements AppointmentService {
             UUID patientId,
             UUID practiceId,
             UUID sessionTypeId,
+            UUID branchId,
             LocalDate date,
+            LocalDate startDate,
+            LocalDate endDate,
             String status,
             String consultationType,
             Pageable pageable) {
+        // Parse multi-status (comma separated) into list
+        java.util.List<AppointmentStatus> statusList = null;
+        if (status != null && !status.trim().isEmpty()) {
+            statusList = java.util.Arrays.stream(status.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(AppointmentStatus::valueOf)
+                    .toList();
+        }
+
         Specification<Appointment> spec = Specification
-                .where(AppointmentSpecification.byDoctorId(doctorId))
+                .where(AppointmentSpecification.byBranchId(branchId))
+                .and(AppointmentSpecification.byDoctorId(doctorId))
                 .and(AppointmentSpecification.byPatientId(patientId))
                 .and(AppointmentSpecification.byPracticeId(practiceId))
                 .and(AppointmentSpecification.bySessionTypeId(sessionTypeId))
-                .and(AppointmentSpecification.byDate(date))
-                .and(AppointmentSpecification.byStatus(status != null ? valueOf(status) : null))
+                .and(AppointmentSpecification.byDateOrDateRange(date, startDate, endDate))
+                .and(AppointmentSpecification.byStatuses(statusList))
                 .and(AppointmentSpecification.byConsultationType(
                         consultationType != null ? ConsultationType.valueOf(consultationType) : null));
 
