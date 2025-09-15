@@ -40,6 +40,9 @@ public class Appointment {
     @Column(name = "session_type_id", nullable = false)
     private UUID sessionTypeId;
 
+    @Column(name = "session_offering_id")
+    private UUID sessionOfferingId;
+
     @Column(name = "practice_id")
     private UUID practiceId;
 

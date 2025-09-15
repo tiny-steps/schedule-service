@@ -20,6 +20,7 @@ public class AppointmentDto {
     private UUID doctorId;
     private UUID patientId;
     private UUID sessionTypeId;
+    private UUID sessionOfferingId;
     private UUID practiceId;
     private LocalDate appointmentDate;
     private LocalTime startTime;
