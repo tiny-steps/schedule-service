@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: ts-schedule-service
-          image: subhankarm2312/ts-schedule-service # CORRECTED: Placeholder name now matches ci.yml
+          image: tinystepsd3v/ts-schedule-service # CORRECTED: Placeholder name now matches ci.yml
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms128m -Xmx256m"
