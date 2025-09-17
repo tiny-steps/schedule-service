@@ -5,5 +5,5 @@ metadata:
 data:
   SPRING_APPLICATION_NAME: "ts-schedule-service"
   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: "http://ts-auth-service:8081"
-  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgresql.infrastructure.svc.cluster.local:5432/schedules"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgresql.infrastructure.svc.cluster.local:5432/schedule_service"
   EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: "http://ts-service-registry:8761/eureka/"
